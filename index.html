@@ -179,23 +179,6 @@
       margin-top:8px;
     }
 
-    /* Mute button top-right only */
-    #muteBtnTop {
-      position:fixed;
-      right:14px;
-      top:14px;
-      z-index:9999;
-      background: rgba(255,255,255,0.95);
-      border: 1px solid rgba(0,0,0,0.06);
-      color: #3b2b2b;
-      padding:8px 10px;
-      border-radius:10px;
-      cursor:pointer;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-      transition: transform .12s ease, background .12s ease;
-    }
-    #muteBtnTop:hover { transform: translateY(-3px); }
-
     /* Romantic state */
     .romantic body, .romantic-root { }
     .romantic .app { background: var(--romantic-bg); }
@@ -238,6 +221,9 @@
       border:1px solid rgba(255,31,58,0.06);
     }
 
+    /* make the small text on the Yes page bright red */
+    #page-yes .small { color: #ff2b47; }
+
     @media (max-width:520px){
       h1{ font-size:1.8rem; }
       .yes-header{ font-size:2.0rem; }
@@ -261,7 +247,7 @@
       <!-- Page: Main -->
       <section id="page-main" class="page active" aria-labelledby="main-title">
         <h1 id="main-title">Will you be my Valentine?</h1>
-        <p class="lead">I made this little page just for you 😁. Click the buttons below 👀.</p>
+        <p class="lead">I made this little page just for you. Click the buttons below.</p>
 
         <div class="buttons" role="group" aria-label="Answer buttons">
           <button id="yesBtn" class="yes" type="button">Yes</button>
@@ -293,10 +279,7 @@
     <div class="falling-layer" id="fallingLayer" aria-hidden="true"></div>
   </div>
 
-  <!-- Mute button top-right only -->
-  <button id="muteBtnTop" aria-pressed="false" title="Mute/unmute">Mute</button>
-
-  <!-- Audio elements -->
+  <!-- Audio elements (kept) -->
   <audio id="track1" src="https://image2url.com/r2/default/audio/1771074206613-fe2e42c8-dca3-4751-bab9-8bace838eec4.mp3" loop crossorigin="anonymous"></audio>
   <audio id="track2" src="https://image2url.com/r2/default/audio/1771075821356-005cc2df-97fb-4777-b935-7be08947a589.mp3" loop crossorigin="anonymous"></audio>
 
@@ -311,7 +294,6 @@
     const backBtn = document.getElementById('backBtn');
     const fallingLayer = document.getElementById('fallingLayer');
     const roseOverlay = document.getElementById('roseOverlay');
-    const muteBtnTop = document.getElementById('muteBtnTop');
 
     // Audio elements
     const audioEl1 = document.getElementById('track1');
@@ -320,7 +302,6 @@
     // Web Audio for crossfade and volume control
     let audioCtx, source1, source2, gain1, gain2;
     let isPlaying = false;
-    let isMuted = false;
     let romanticMode = false;
     let fallingInterval = null;
 
@@ -358,8 +339,6 @@
         // start track2 silently (gain 0) so crossfade later is smooth
         await audioEl2.play().catch(()=>{});
         isPlaying = true;
-        isMuted = false;
-        muteBtnTop.textContent = 'Mute';
         return;
       } catch (err) {
         // Unmuted autoplay blocked. Try muted autoplay (most browsers allow).
@@ -372,35 +351,25 @@
         await audioEl1.play();
         await audioEl2.play().catch(()=>{});
         isPlaying = true;
-        // keep muted for now; attempt to unmute after a short delay
-        muteBtnTop.textContent = 'Unmute';
         // Attempt to unmute after a short delay (some browsers still require gesture)
         setTimeout(async () => {
           try {
             audioEl1.muted = false;
             audioEl2.muted = false;
-            // resume audio context if needed
             if (audioCtx.state === 'suspended') await audioCtx.resume();
-            // try to set gains back to intended values
             if (gain1 && gain2) {
               gain1.gain.setValueAtTime(2.0, audioCtx.currentTime);
               gain2.gain.setValueAtTime(0.0, audioCtx.currentTime);
             }
-            isMuted = false;
-            muteBtnTop.textContent = 'Mute';
           } catch (e) {
             // still blocked; remain muted until user gesture
             audioEl1.muted = true;
             audioEl2.muted = true;
-            isMuted = true;
-            muteBtnTop.textContent = 'Unmute';
           }
         }, 700); // small delay to let browser settle
       } catch (err) {
         // Even muted play blocked (rare). We'll wait for first user gesture.
         isPlaying = false;
-        isMuted = true;
-        muteBtnTop.textContent = 'Unmute';
       }
     }
 
@@ -593,35 +562,6 @@
       showPage(pageMain);
     });
 
-    // Mute button top-right behavior
-    muteBtnTop.addEventListener('click', async () => {
-      if (!audioCtx) initAudioContext();
-      isMuted = !isMuted;
-      muteBtnTop.setAttribute('aria-pressed', String(isMuted));
-      if (isMuted) {
-        // set gains to 0
-        if (gain1 && gain2) {
-          gain1.gain.setValueAtTime(0, audioCtx.currentTime);
-          gain2.gain.setValueAtTime(0, audioCtx.currentTime);
-        } else {
-          audioEl1.muted = true;
-          audioEl2.muted = true;
-        }
-        muteBtnTop.textContent = 'Unmute';
-      } else {
-        // restore gains depending on active page
-        const activeIsYes = pageYes.classList.contains('active');
-        if (gain1 && gain2) {
-          gain1.gain.setValueAtTime(activeIsYes ? 0 : 2.0, audioCtx.currentTime);
-          gain2.gain.setValueAtTime(activeIsYes ? 2.0 : 0, audioCtx.currentTime);
-        } else {
-          audioEl1.muted = false;
-          audioEl2.muted = false;
-        }
-        muteBtnTop.textContent = 'Mute';
-      }
-    });
-
     // Try to start audio on load
     window.addEventListener('load', () => {
       // small delay to let page render
@@ -637,8 +577,6 @@
       audioEl2.muted = false;
       audioEl1.play().then(()=> {
         isPlaying = true;
-        isMuted = false;
-        muteBtnTop.textContent = 'Mute';
         // ensure gain nodes set
         if (gain1 && gain2) {
           gain1.gain.setValueAtTime(pageYes.classList.contains('active') ? 0 : 2.0, audioCtx.currentTime);
@@ -666,5 +604,4 @@
     });
   </script>
 </body>
-
 </html>
