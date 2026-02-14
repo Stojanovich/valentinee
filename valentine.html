@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Will You Be My Valentine?</title>
+  <style>
+    :root{
+      --pink-bg: #fff0f6;
+      --panel-pink: rgba(255,255,255,0.95);
+      --accent-pink: #ff4b9e;
+      --muted-dark: #3b2b2b;
+      --romantic-bg: linear-gradient(180deg,#2b0f14 0%, #3a0f18 100%);
+      --romantic-panel: rgba(10,0,0,0.55);
+      --accent-red: #ff2b47;
+      --glow-red: 0 0 22px rgba(255,36,71,0.28);
+      --radius:14px;
+      --font: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:var(--font);
+      background: var(--pink-bg);
+      color:var(--muted-dark);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Layout */
+    .app {
+      min-height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+      box-sizing:border-box;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .card {
+      width:100%;
+      max-width:880px;
+      background: var(--panel-pink);
+      border-radius:var(--radius);
+      padding:28px;
+      box-sizing:border-box;
+      text-align:center;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.08);
+      position:relative;
+      z-index:3;
+      transition: background 600ms ease, color 600ms ease, box-shadow 600ms ease, transform 300ms ease;
+    }
+
+    h1 {
+      margin:0 0 10px 0;
+      color:var(--accent-pink);
+      font-size:2.6rem;
+      line-height:1.02;
+      text-shadow: 0 8px 30px rgba(255,75,158,0.08);
+      letter-spacing:0.6px;
+    }
+
+    p.lead {
+      margin:0 0 18px 0;
+      color:#6b2b2b;
+      font-size:1rem;
+    }
+
+    .buttons {
+      display:flex;
+      gap:14px;
+      justify-content:center;
+      margin-top:18px;
+      flex-wrap:wrap;
+    }
+
+    button {
+      border:0;
+      cursor:pointer;
+      padding:12px 22px;
+      border-radius:12px;
+      font-size:1.05rem;
+      color:#fff;
+      transition: transform .12s cubic-bezier(.2,.9,.3,1), box-shadow .12s ease, filter .12s ease;
+      position:relative;
+      z-index:4;
+      user-select:none;
+    }
+
+    .yes {
+      background: linear-gradient(180deg, #ff6aa6, #ff3b86);
+      box-shadow: 0 10px 30px rgba(255,75,158,0.14), 0 0 18px rgba(255,75,158,0.06);
+    }
+
+    .no {
+      background: linear-gradient(180deg, #ff9fbf, #ff6f9a);
+      box-shadow: 0 8px 24px rgba(255,75,158,0.08);
+    }
+
+    .yes:hover, .no:hover { transform: translateY(-4px); }
+
+    .gif-wrap {
+      margin-top:20px;
+      display:flex;
+      justify-content:center;
+      z-index:4;
+    }
+
+    .gif-wrap img {
+      width:100%;
+      max-width:560px;
+      border-radius:12px;
+      display:block;
+      border:1px solid rgba(0,0,0,0.04);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+    }
+
+    /* Falling layer */
+    .falling-layer {
+      pointer-events:none;
+      position:absolute;
+      inset:0;
+      overflow:hidden;
+      z-index:2;
+    }
+
+    .falling-item {
+      position:absolute;
+      top:-12vh;
+      will-change: transform, opacity;
+      text-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      filter: drop-shadow(0 8px 18px rgba(0,0,0,0.08));
+      transform-origin: center;
+      opacity:0;
+      animation-name: floatDown;
+      animation-timing-function: linear;
+      animation-iteration-count: 1;
+      animation-fill-mode: forwards;
+      display:inline-block;
+      line-height:1;
+    }
+
+    @keyframes floatDown {
+      0% {
+        transform: translate3d(0,-10vh,0) rotate(0deg) scale(1);
+        opacity:0;
+      }
+      8% { opacity:1; }
+      50% {
+        transform: translate3d(var(--tx, 20px), 50vh, 0) rotate(var(--rot, 20deg)) scale(var(--s,1));
+      }
+      100% {
+        transform: translate3d(var(--tx-end, -20px), 120vh, 0) rotate(calc(var(--rot,20deg) + 360deg)) scale(var(--s,1));
+        opacity:0.95;
+      }
+    }
+
+    .size-s { font-size:14px; }
+    .size-m { font-size:22px; }
+    .size-l { font-size:34px; }
+
+    /* Page sections */
+    .page { display:none; }
+    .page.active { display:block; }
+
+    .yes-header {
+      color:var(--accent-red);
+      font-size:2.8rem;
+      margin:0 0 12px 0;
+      text-shadow: 0 0 18px rgba(255,36,71,0.18);
+    }
+
+    .small {
+      font-size:.98rem;
+      color:#6b2b2b;
+      margin-top:8px;
+    }
+
+    /* Mute button top-right only */
+    #muteBtnTop {
+      position:fixed;
+      right:14px;
+      top:14px;
+      z-index:9999;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(0,0,0,0.06);
+      color: #3b2b2b;
+      padding:8px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+      transition: transform .12s ease, background .12s ease;
+    }
+    #muteBtnTop:hover { transform: translateY(-3px); }
+
+    /* Romantic state */
+    .romantic body, .romantic-root { }
+    .romantic .app { background: var(--romantic-bg); }
+    .romantic .card {
+      background: var(--romantic-panel);
+      color: #ffdfe2;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.75), var(--glow-red);
+      border: 1px solid rgba(255,36,71,0.12);
+      transform: translateY(-6px);
+    }
+    .romantic h1 { color: #ffd6da; text-shadow: 0 0 22px rgba(255,36,71,0.22); }
+    .romantic .yes { background: linear-gradient(180deg, #ff2b47, #ff6a7f); box-shadow: var(--glow-red); }
+    .romantic .no { background: rgba(255,255,255,0.03); color:#ffd6da; border:1px solid rgba(255,36,71,0.06); }
+
+    .rose-overlay {
+      position:absolute;
+      inset:0;
+      z-index:1;
+      pointer-events:none;
+      display:none;
+      background-image: radial-gradient(circle at 10% 10%, rgba(255,36,71,0.03), transparent 6%),
+                        radial-gradient(circle at 90% 90%, rgba(255,36,71,0.02), transparent 8%);
+      mix-blend-mode: screen;
+    }
+
+    /* small decorative heart in corner */
+    .corner-heart {
+      position:absolute;
+      left:18px;
+      top:18px;
+      width:46px;
+      height:46px;
+      border-radius:10px;
+      background: linear-gradient(180deg, rgba(255,75,158,0.12), rgba(255,75,158,0.06));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 6px 20px rgba(255,31,58,0.06);
+      z-index:4;
+      border:1px solid rgba(255,31,58,0.06);
+    }
+
+    @media (max-width:520px){
+      h1{ font-size:1.8rem; }
+      .yes-header{ font-size:2.0rem; }
+      button{ width:100%; }
+      .gif-wrap img{ max-width:360px; }
+      .card { padding:18px; }
+      .corner-heart { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="appRoot">
+    <div class="card" id="card">
+
+      <div class="corner-heart" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 21s-7.5-4.9-9.2-8.1C1.9 9.9 4.2 6 7.6 6c1.8 0 3.1 1.1 4.4 2.6 1.3-1.5 2.6-2.6 4.4-2.6 3.4 0 5.7 3.9 4.8 6.9C19.5 16.1 12 21 12 21z" fill="#ff2b47"/>
+        </svg>
+      </div>
+
+      <!-- Page: Main -->
+      <section id="page-main" class="page active" aria-labelledby="main-title">
+        <h1 id="main-title">Will you be my Valentine?</h1>
+        <p class="lead">I made this little page just for you 😁. Click the buttons below 👀.</p>
+
+        <div class="buttons" role="group" aria-label="Answer buttons">
+          <button id="yesBtn" class="yes" type="button">Yes</button>
+          <button id="noBtn" class="no" type="button">No</button>
+        </div>
+
+        <div class="gif-wrap" aria-hidden="false">
+          <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbW5lenZyZHI5OXM2eW95b3pmMG40cWVrMDhtNjVuM3A4dGNxa2g2dSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/VM1fcpu2bKs1e2Kdbj/giphy.gif" alt="Cute animated heart GIF">
+        </div>
+      </section>
+
+      <!-- Page: Yes -->
+      <section id="page-yes" class="page" aria-labelledby="yes-title">
+        <h1 id="yes-title" class="yes-header">Knew you would say yes!</h1>
+        <p class="small">I LOVE YOUUU!!! ❤️🐈</p>
+
+        <div class="gif-wrap" aria-hidden="false">
+          <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmo3c3l5ODh3ZGN6NHhhaDE2Mjg1ZjkwOXczdDFxbWM3dTBtaW9zaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9XY4f3FgFTT4QlaYqa/giphy.gif" alt="Celebration GIF">
+        </div>
+
+        <div class="buttons" style="margin-top:18px;">
+          <button id="backBtn" class="no" type="button">Back</button>
+        </div>
+      </section>
+
+      <div id="roseOverlay" class="rose-overlay"></div>
+    </div>
+
+    <div class="falling-layer" id="fallingLayer" aria-hidden="true"></div>
+  </div>
+
+  <!-- Mute button top-right only -->
+  <button id="muteBtnTop" aria-pressed="false" title="Mute/unmute">Mute</button>
+
+  <!-- Audio elements -->
+  <audio id="track1" src="https://image2url.com/r2/default/audio/1771074206613-fe2e42c8-dca3-4751-bab9-8bace838eec4.mp3" loop crossorigin="anonymous"></audio>
+  <audio id="track2" src="https://image2url.com/r2/default/audio/1771075821356-005cc2df-97fb-4777-b935-7be08947a589.mp3" loop crossorigin="anonymous"></audio>
+
+  <script>
+    // Elements
+    const appRoot = document.getElementById('appRoot');
+    const card = document.getElementById('card');
+    const pageMain = document.getElementById('page-main');
+    const pageYes = document.getElementById('page-yes');
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn = document.getElementById('noBtn');
+    const backBtn = document.getElementById('backBtn');
+    const fallingLayer = document.getElementById('fallingLayer');
+    const roseOverlay = document.getElementById('roseOverlay');
+    const muteBtnTop = document.getElementById('muteBtnTop');
+
+    // Audio elements
+    const audioEl1 = document.getElementById('track1');
+    const audioEl2 = document.getElementById('track2');
+
+    // Web Audio for crossfade and volume control
+    let audioCtx, source1, source2, gain1, gain2;
+    let isPlaying = false;
+    let isMuted = false;
+    let romanticMode = false;
+    let fallingInterval = null;
+
+    function initAudioContext() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      source1 = audioCtx.createMediaElementSource(audioEl1);
+      source2 = audioCtx.createMediaElementSource(audioEl2);
+      gain1 = audioCtx.createGain();
+      gain2 = audioCtx.createGain();
+
+      // Increase volume by "double" relative to normal: set gain to 2.0
+      // Note: gain > 1 amplifies; browser/device may clip if too loud.
+      gain1.gain.value = 2.0; // track1 audible initially
+      gain2.gain.value = 0.0; // track2 silent until crossfade
+
+      source1.connect(gain1).connect(audioCtx.destination);
+      source2.connect(gain2).connect(audioCtx.destination);
+    }
+
+    // Attempt to start audio on page load. Many browsers block autoplay with sound.
+    // Strategy:
+    // 1) Try to play unmuted immediately.
+    // 2) If blocked, play muted (allowed by most browsers) so audio is "started" and ready.
+    // 3) If muted fallback used, try to unmute after a short delay; if still blocked, keep muted until user gesture.
+    async function startAudioOnLoad() {
+      initAudioContext();
+      audioEl1.volume = 1.0;
+      audioEl2.volume = 1.0;
+
+      // First try: unmuted play
+      try {
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        await audioEl1.play();
+        // start track2 silently (gain 0) so crossfade later is smooth
+        await audioEl2.play().catch(()=>{});
+        isPlaying = true;
+        isMuted = false;
+        muteBtnTop.textContent = 'Mute';
+        return;
+      } catch (err) {
+        // Unmuted autoplay blocked. Try muted autoplay (most browsers allow).
+      }
+
+      // Try muted play so audio graph is active
+      try {
+        audioEl1.muted = true;
+        audioEl2.muted = true;
+        await audioEl1.play();
+        await audioEl2.play().catch(()=>{});
+        isPlaying = true;
+        // keep muted for now; attempt to unmute after a short delay
+        muteBtnTop.textContent = 'Unmute';
+        // Attempt to unmute after a short delay (some browsers still require gesture)
+        setTimeout(async () => {
+          try {
+            audioEl1.muted = false;
+            audioEl2.muted = false;
+            // resume audio context if needed
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            // try to set gains back to intended values
+            if (gain1 && gain2) {
+              gain1.gain.setValueAtTime(2.0, audioCtx.currentTime);
+              gain2.gain.setValueAtTime(0.0, audioCtx.currentTime);
+            }
+            isMuted = false;
+            muteBtnTop.textContent = 'Mute';
+          } catch (e) {
+            // still blocked; remain muted until user gesture
+            audioEl1.muted = true;
+            audioEl2.muted = true;
+            isMuted = true;
+            muteBtnTop.textContent = 'Unmute';
+          }
+        }, 700); // small delay to let browser settle
+      } catch (err) {
+        // Even muted play blocked (rare). We'll wait for first user gesture.
+        isPlaying = false;
+        isMuted = true;
+        muteBtnTop.textContent = 'Unmute';
+      }
+    }
+
+    // Crossfade functions (use WebAudio gain nodes)
+    function crossfadeToTrack2(duration = 3.0) {
+      if (!audioCtx) initAudioContext();
+      const now = audioCtx.currentTime;
+      audioEl1.play().catch(()=>{});
+      audioEl2.play().catch(()=>{});
+
+      gain1.gain.cancelScheduledValues(now);
+      gain2.gain.cancelScheduledValues(now);
+
+      // Start from current values
+      gain1.gain.setValueAtTime(gain1.gain.value, now);
+      gain2.gain.setValueAtTime(gain2.gain.value, now);
+
+      // Ramp: track1 -> 0, track2 -> 2.0 (double volume)
+      gain1.gain.linearRampToValueAtTime(0.0, now + duration);
+      gain2.gain.linearRampToValueAtTime(2.0, now + duration);
+
+      // Pause track1 after fade to save resources
+      setTimeout(() => {
+        try { audioEl1.pause(); } catch(e){}
+      }, (duration + 0.25) * 1000);
+    }
+
+    function crossfadeToTrack1(duration = 2.0) {
+      if (!audioCtx) initAudioContext();
+      const now = audioCtx.currentTime;
+      audioEl1.play().catch(()=>{});
+      audioEl2.play().catch(()=>{});
+
+      gain1.gain.cancelScheduledValues(now);
+      gain2.gain.cancelScheduledValues(now);
+
+      gain1.gain.setValueAtTime(gain1.gain.value, now);
+      gain2.gain.setValueAtTime(gain2.gain.value, now);
+
+      gain1.gain.linearRampToValueAtTime(2.0, now + duration);
+      gain2.gain.linearRampToValueAtTime(0.0, now + duration);
+
+      setTimeout(() => {
+        try { audioEl2.pause(); } catch(e){}
+      }, (duration + 0.25) * 1000);
+    }
+
+    // Show/hide pages
+    function showPage(pageEl){
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      pageEl.classList.add('active');
+      const focusable = pageEl.querySelector('button, a, [tabindex]');
+      if (focusable) focusable.focus();
+    }
+
+    // Falling items logic
+    const HEARTS = ['💗','💖','💞','💕','💓'];
+    const ROSES = ['🌹','🥀'];
+    function random(min, max){ return Math.random()*(max-min)+min; }
+
+    function createFallingItem(isRose=false){
+      const el = document.createElement('div');
+      el.className = 'falling-item';
+      const sizeRand = Math.random();
+      const sizeClass = sizeRand < 0.2 ? 'size-l' : (sizeRand < 0.7 ? 'size-m' : 'size-s');
+      el.classList.add(sizeClass);
+
+      // random horizontal start
+      const left = Math.floor(Math.random()*100);
+      el.style.left = left + '%';
+
+      // random translate offsets and rotation stored in CSS variables used by keyframes
+      const tx = Math.floor(random(-60, 60)) + 'px';
+      const txEnd = Math.floor(random(-120, 120)) + 'px';
+      const rot = Math.floor(random(-40, 40)) + 'deg';
+      const scale = (0.9 + Math.random()*0.6).toFixed(2);
+
+      el.style.setProperty('--tx', tx);
+      el.style.setProperty('--tx-end', txEnd);
+      el.style.setProperty('--rot', rot);
+      el.style.setProperty('--s', scale);
+
+      // duration and delay
+      const duration = Math.floor(random(6, 14));
+      const delay = Math.floor(random(0, 6));
+      el.style.animationDuration = `${duration}s`;
+      el.style.animationDelay = `${delay}s`;
+
+      // choose emoji
+      el.textContent = isRose ? ROSES[Math.floor(Math.random()*ROSES.length)] : HEARTS[Math.floor(Math.random()*HEARTS.length)];
+
+      // subtle color glow for hearts/roses
+      el.style.textShadow = '0 8px 20px rgba(255,100,150,0.12)';
+
+      fallingLayer.appendChild(el);
+
+      // cleanup after animation finishes
+      setTimeout(()=> {
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      }, (duration + delay + 0.5) * 1000);
+    }
+
+    function startFalling() {
+      // initial burst
+      for (let i=0;i<18;i++){
+        createFallingItem(false);
+      }
+      // continuous generation
+      if (fallingInterval) clearInterval(fallingInterval);
+      fallingInterval = setInterval(()=> {
+        if (romanticMode) {
+          createFallingItem(Math.random() < 0.45);
+        } else {
+          createFallingItem(false);
+        }
+      }, 420); // faster, more lively
+    }
+
+    function stopFalling(){
+      clearInterval(fallingInterval);
+      fallingInterval = null;
+      fallingLayer.innerHTML = '';
+    }
+
+    // Start falling immediately
+    startFalling();
+
+    // No button playful behavior
+    const messages = [
+      "Are you sure?",
+      "Really sure??",
+      "Are you positive?",
+      "Pookie please...",
+      "Just think about it!",
+      "If you say no, I will be really sad...",
+      "I will be very sad...",
+      "I will be very very very sad...",
+      "Ok fine, I will stop asking...",
+      "Just kidding, say yes please! ❤️"
+    ];
+    let messageIndex = 0;
+
+    noBtn.addEventListener('click', () => {
+      noBtn.textContent = messages[messageIndex];
+      messageIndex = (messageIndex + 1) % messages.length;
+      const yesStyle = window.getComputedStyle(yesBtn);
+      const currentSize = parseFloat(yesStyle.fontSize) || 16;
+      yesBtn.style.fontSize = (currentSize * 1.06) + "px";
+      if (Math.random() < 0.35){
+        const parent = noBtn.parentNode;
+        parent.insertBefore(noBtn, yesBtn);
+        setTimeout(()=> parent.insertBefore(yesBtn, noBtn), 900);
+      }
+    });
+
+    // Yes button: switch to romantic style, crossfade audio, add roses
+    yesBtn.addEventListener('click', async () => {
+      romanticMode = true;
+      document.documentElement.classList.add('romantic');
+      appRoot.classList.add('romantic');
+      card.classList.add('romantic');
+      roseOverlay.style.display = 'block';
+
+      // create a burst of mixed hearts and roses
+      for (let i=0;i<28;i++){
+        createFallingItem(Math.random() < 0.5);
+      }
+
+      // ensure audio context started and crossfade
+      initAudioContext();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+      try { await audioEl1.play(); } catch(e){}
+      try { await audioEl2.play(); } catch(e){}
+
+      crossfadeToTrack2(3.0);
+      showPage(pageYes);
+    });
+
+    backBtn.addEventListener('click', async () => {
+      romanticMode = false;
+      document.documentElement.classList.remove('romantic');
+      appRoot.classList.remove('romantic');
+      card.classList.remove('romantic');
+      roseOverlay.style.display = 'none';
+
+      initAudioContext();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      crossfadeToTrack1(2.0);
+      showPage(pageMain);
+    });
+
+    // Mute button top-right behavior
+    muteBtnTop.addEventListener('click', async () => {
+      if (!audioCtx) initAudioContext();
+      isMuted = !isMuted;
+      muteBtnTop.setAttribute('aria-pressed', String(isMuted));
+      if (isMuted) {
+        // set gains to 0
+        if (gain1 && gain2) {
+          gain1.gain.setValueAtTime(0, audioCtx.currentTime);
+          gain2.gain.setValueAtTime(0, audioCtx.currentTime);
+        } else {
+          audioEl1.muted = true;
+          audioEl2.muted = true;
+        }
+        muteBtnTop.textContent = 'Unmute';
+      } else {
+        // restore gains depending on active page
+        const activeIsYes = pageYes.classList.contains('active');
+        if (gain1 && gain2) {
+          gain1.gain.setValueAtTime(activeIsYes ? 0 : 2.0, audioCtx.currentTime);
+          gain2.gain.setValueAtTime(activeIsYes ? 2.0 : 0, audioCtx.currentTime);
+        } else {
+          audioEl1.muted = false;
+          audioEl2.muted = false;
+        }
+        muteBtnTop.textContent = 'Mute';
+      }
+    });
+
+    // Try to start audio on load
+    window.addEventListener('load', () => {
+      // small delay to let page render
+      setTimeout(() => startAudioOnLoad(), 120);
+    });
+
+    // If autoplay was blocked and audio is muted, allow first gesture to unmute and start
+    function startOnFirstGesture() {
+      if (!audioCtx) initAudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+      // If audio hasn't started, try to play unmuted now
+      audioEl1.muted = false;
+      audioEl2.muted = false;
+      audioEl1.play().then(()=> {
+        isPlaying = true;
+        isMuted = false;
+        muteBtnTop.textContent = 'Mute';
+        // ensure gain nodes set
+        if (gain1 && gain2) {
+          gain1.gain.setValueAtTime(pageYes.classList.contains('active') ? 0 : 2.0, audioCtx.currentTime);
+          gain2.gain.setValueAtTime(pageYes.classList.contains('active') ? 2.0 : 0.0, audioCtx.currentTime);
+        }
+      }).catch(()=>{});
+      audioEl2.play().catch(()=>{});
+      window.removeEventListener('pointerdown', startOnFirstGesture);
+      window.removeEventListener('keydown', startOnFirstGesture);
+    }
+    window.addEventListener('pointerdown', startOnFirstGesture);
+    window.addEventListener('keydown', startOnFirstGesture);
+
+    // Accessibility: Enter/Space activates focused button
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const active = document.activeElement;
+        if (active && active.tagName === 'BUTTON') active.click();
+      }
+    });
+
+    // Clean up on unload
+    window.addEventListener('beforeunload', () => {
+      if (fallingInterval) clearInterval(fallingInterval);
+    });
+  </script>
+</body>
+</html>
